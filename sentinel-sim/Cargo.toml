@@ -1,0 +1,16 @@
+[package]
+name = "sentinel-sim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sentinel-core = { path = "../sentinel-core" }
+nalgebra = "*"
+frugal_ml = { path = "../../frugal_ml", default-features = false }
+
+# La librairie de visualisation
+plotters = "0.3"
+
+# Pour générer du bruit gaussien (simulation capteur)
+rand = "*"
+rand_distr = "*"

@@ -1,0 +1,6 @@
+[workspace]
+resolver = "3"
+
+members = ["sentinel-core", "sentinel-embedd", "sentinel-sim"]
+
+

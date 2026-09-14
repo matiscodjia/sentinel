@@ -1,0 +1,20 @@
+[package]
+name = "sentinel-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+nalgebra = { version = "*", default-features = false, features = ["libm", "macros"]}
+frugal_ml = { path = "../../frugal_ml", default-features = false }
+
+[dev-dependencies]
+criterion = "0.8.2"
+
+[[bench]]
+name = "kalman_nalgebra_vs_frugal"
+harness = false
+
+[[bench]]
+name = "inverse_3x3"
+harness = false

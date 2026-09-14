@@ -1,0 +1,17 @@
+[package]
+name = "sentinel-embedd"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Le noyau du processeur (obligatoire pour l'embarqué)
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+
+# Gestion des erreurs (boucle infinie si crash)
+panic-halt = "*"
+
+# Le HAL (Hardware Abstraction Layer) pour ta Black Pill F411
+[dependencies.stm32f4xx-hal]
+version = "*"
+features = ["stm32f411", "rt"]
