@@ -6,13 +6,13 @@ pub struct Hit {
     normal: fgml::Vector<3>,
 }
 pub enum Shape {
-    Plan {
+    Plane {
         point: fgml::Vector<3>,
         normal: fgml::Vector<3>,
     },
     Sphere {
         center: fgml::Vector<3>,
-        radius: usize,
+        radius: Scalar,
     },
     Triangle {
         a: Vector<3>,
@@ -48,7 +48,7 @@ fn solve_quadratic(a: Scalar, b: Scalar, c: Scalar) -> Roots {
 impl Intersectable for Shape {
     fn intersect(&self, origin: fgml::Vector<3>, direction: fgml::Vector<3>) -> Option<Hit> {
         match self {
-            Shape::Plan { point, normal } => {
+            Shape::Plane { point, normal } => {
                 let alignement = normal.dot(&direction);
                 if alignement.abs() < EPSILON {
                     return None;
@@ -69,7 +69,7 @@ impl Intersectable for Shape {
             Shape::Sphere { center, radius } => {
                 let diff = origin - *center;
                 let b = 2.0 * (direction.dot(&diff));
-                let c = diff.dot(&diff) - (radius * radius) as Scalar;
+                let c = diff.dot(&diff) - radius * radius;
                 let result = solve_quadratic(1.0, b, c);
                 match result {
                     Roots::None => return None,
