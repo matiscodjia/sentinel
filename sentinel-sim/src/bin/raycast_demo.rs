@@ -285,16 +285,23 @@ fn render_scan(path: &PathBuf, base: &Scene, sensor: &TofSensor) -> Res<()> {
             &left,
             "Pan-tilt scan: point cloud",
             &format!(
-                "pan {:+.0}°  tilt {:+.0}°   grey: earlier frames   colour: this frame   magenta: true target",
+                "pan {:+.0}°  tilt {:+.0}°   grey: earlier frames   colour: this frame   magenta: true target   white: sensor",
                 pose.pan.to_degrees(),
                 pose.tilt.to_degrees()
             ),
         )?;
+        // Plotters' 3-D frame is (horizontal, vertical, depth) and has the
+        // opposite handedness to the world (x forward, y left, z up). Drawing
+        // world (x, y, z) as (y, z, x) puts depth along the sensor's forward
+        // axis and keeps y = +1 (left) on the left, without flipping labels.
         let mut chart =
-            ChartBuilder::on(&left).build_cartesian_3d(0.0f32..3.6, 0.0f32..1.4, -1.9f32..1.9)?;
+            ChartBuilder::on(&left).build_cartesian_3d(-1.9f32..1.9, 0.0f32..1.4, 0.0f32..3.6)?;
         chart.with_projection(|mut p| {
-            p.pitch = 0.5;
-            p.yaw = 2.3; // from behind the sensor, looking along +x
+            // yaw = π looks along +x from behind the sensor. 2.9 moves the
+            // camera slightly to the right and pitch raises it, so the room
+            // keeps its depth instead of collapsing into a flat front view.
+            p.yaw = 2.9;
+            p.pitch = 0.55;
             p.scale = 0.95;
             p.into_matrix()
         });
@@ -305,9 +312,12 @@ fn render_scan(path: &PathBuf, base: &Scene, sensor: &TofSensor) -> Res<()> {
             .axis_panel_style(RGBColor(28, 31, 38))
             .label_style(("sans-serif", 12).into_font().color(&MUTED))
             .max_light_lines(0)
+            .x_labels(5)
+            .y_labels(4)
+            .z_labels(4)
             .draw()?;
 
-        let to_chart = |p: &Vector<3>| (p[0], p[2], p[1]);
+        let to_chart = |p: &Vector<3>| (p[1], p[2], p[0]);
         chart.draw_series(
             cloud
                 .iter()
@@ -333,6 +343,11 @@ fn render_scan(path: &PathBuf, base: &Scene, sensor: &TofSensor) -> Res<()> {
             let tip = sensor.position + sensor.ray(&pose, u, vv) * 1.0;
             chart.draw_series(LineSeries::new([apex, to_chart(&tip)], INK.mix(0.6)))?;
         }
+        // The sensor itself, at the apex of its field of view.
+        chart.draw_series([
+            Circle::new(apex, 6, BACKGROUND.filled()),
+            Circle::new(apex, 5, WHITE.filled()),
+        ])?;
 
         // Right: the live 8×8 frame.
         let right = titled(
