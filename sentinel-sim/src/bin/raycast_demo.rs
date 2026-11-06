@@ -119,6 +119,9 @@ fn distance_color(d: Scalar, max: Scalar) -> RGBColor {
 const BACKGROUND: RGBColor = RGBColor(18, 20, 26);
 const INK: RGBColor = RGBColor(225, 228, 235);
 const MUTED: RGBColor = RGBColor(130, 136, 150);
+/// Ground-truth target. Magenta is absent from the distance palette
+/// (red-orange → yellow → green → blue), so it can't be read as a near point.
+const TARGET: RGBColor = RGBColor(236, 64, 236);
 
 /// One ray per pixel through the sensor's field of view: a pinhole camera
 /// with the sensor's pose and FoV, shaded by the hit normal and tinted by
@@ -282,7 +285,7 @@ fn render_scan(path: &PathBuf, base: &Scene, sensor: &TofSensor) -> Res<()> {
             &left,
             "Pan-tilt scan: point cloud",
             &format!(
-                "pan {:+.0}°  tilt {:+.0}°   grey: earlier frames   colour: this frame   red: true target",
+                "pan {:+.0}°  tilt {:+.0}°   grey: earlier frames   colour: this frame   magenta: true target",
                 pose.pan.to_degrees(),
                 pose.tilt.to_degrees()
             ),
@@ -316,13 +319,13 @@ fn render_scan(path: &PathBuf, base: &Scene, sensor: &TofSensor) -> Res<()> {
         }))?;
         chart.draw_series(LineSeries::new(
             trail.iter().map(to_chart),
-            RGBColor(255, 80, 80).mix(0.6),
+            TARGET.mix(0.7).stroke_width(2),
         ))?;
-        chart.draw_series(std::iter::once(Circle::new(
-            to_chart(&target),
-            6,
-            RGBColor(255, 80, 80).filled(),
-        )))?;
+        // White ring under the dot keeps it readable over any point colour.
+        chart.draw_series([
+            Circle::new(to_chart(&target), 8, WHITE.filled()),
+            Circle::new(to_chart(&target), 6, TARGET.filled()),
+        ])?;
 
         // Field-of-view pyramid, 1 m long.
         let apex = to_chart(&sensor.position);
