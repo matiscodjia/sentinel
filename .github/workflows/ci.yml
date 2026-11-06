@@ -33,6 +33,9 @@ jobs:
       - name: Simulator runs
         working-directory: projects/sentinel
         run: cargo run --release -p sentinel-sim > /dev/null
+      - name: Digital twin renders
+        working-directory: projects/sentinel
+        run: cargo run --release -p sentinel-sim --bin raycast_demo
 
   firmware:
     name: Firmware build (STM32F411, thumbv7em)

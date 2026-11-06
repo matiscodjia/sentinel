@@ -15,7 +15,7 @@ work today. The full system (ToF sensor on a pan-tilt arm, target lock, live
 | Crate | Target | What it does |
 |---|---|---|
 | `sentinel-core` | `no_std` | 9-state / 3-measurement constant-acceleration Kalman filter, written twice: on `nalgebra` (`KalmanFilter`) and on `frugal_ml` (`KalmanFilterFrugal`), with the same API, to compare them |
-| `sentinel-sim` | host | Generates 3-D trajectories (linear, helix, ballistic with wind, chaotic), adds Gaussian sensor noise, runs `KalmanFilterFrugal`, prints CSV. `plot.py` renders it in 3-D. Also holds the start of the ray-casting sensor model (`intersectable.rs`) |
+| `sentinel-sim` | host | Two simulators. The Kalman simulator generates 3-D trajectories (linear, helix, ballistic with wind, chaotic), adds Gaussian sensor noise, runs `KalmanFilterFrugal` and prints CSV; `plot.py` renders it in 3-D. The **digital twin** is a ray-caster (`intersectable.rs`) plus a VL53L5CX sensor model on the pan-tilt arm (`tof.rs`) |
 | `sentinel-embedd` | STM32F411 (`thumbv7em-none-eabihf`) | Firmware bring-up: servo PWM on TIM3 / PA6 at 50 Hz, status LED. This is the first step of the pan-tilt arm |
 
 ## Results so far
@@ -46,6 +46,35 @@ helix and chaotic cases worse still (2.0 at `Q = 0.01`), so this is model
 mismatch, not too much smoothing. Next steps on the filter: tune `Q` per state
 instead of `Q = q·I`, use `R = σ²` (the code uses `σ`), and try a model that
 fits manoeuvring targets (Singer, or an IMM over CV and CA).
+
+## Digital twin: ray-caster and VL53L5CX model
+
+Before the sensor is wired, the twin produces the frames it will send. That
+lets the scan, background-removal and clustering steps of [`PLAN.md`](PLAN.md)
+be developed and tested against known ground truth.
+
+- **Ray-caster** (`intersectable.rs`): ray / plane, ray / sphere (quadratic)
+  and ray / triangle (Möller-Trumbore, using `frugal_ml`'s `Vector<3>::cross`).
+  Boxes are built from 12 triangles. `Scene::cast` returns the closest hit.
+- **Sensor model** (`tof.rs`): 8×8 zones over 45°×45°, range up to 4 m,
+  ±1.5 cm noise, mounted on the pan-tilt arm. A zone is a ~5.6° cone, not a
+  thin ray, so the model casts 4×4 sub-rays per zone and reports their median
+  distance. A zone reports no target when fewer than half of its sub-rays come
+  back. Edges between near and far objects therefore blur over a whole zone,
+  as they do on the real sensor.
+
+![Camera view from the ray-caster next to the 8×8 frame the sensor reports](sentinel-sim/renders/raycast_view.png)
+
+The arm sweeping the room while a target crosses it. The point cloud builds
+up on the left (each valid zone is projected back to x, y, z, step 3 of the
+plan) and the live 8×8 frame shows on the right:
+
+![Pan-tilt scan animation](sentinel-sim/renders/tof_scan.gif)
+
+```sh
+cargo run --release -p sentinel-sim --bin raycast_demo   # writes sentinel-sim/renders/
+cargo test -p sentinel-sim                               # 13 tests: intersections, sensor model
+```
 
 ## Running
 
