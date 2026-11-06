@@ -2,6 +2,7 @@
 name = "sentinel-sim"
 version = "0.1.0"
 edition = "2024"
+default-run = "sentinel-sim"
 
 [dependencies]
 sentinel-core = { path = "../sentinel-core" }
