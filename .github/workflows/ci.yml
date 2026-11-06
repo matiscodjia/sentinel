@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host:
+    name: Build, test & bench-compile (host)
+    runs-on: ubuntu-latest
+    steps:
+      # sentinel depends on frugal_ml by path (../frugal_ml): reproduce that layout.
+      - uses: actions/checkout@v4
+        with:
+          path: projects/sentinel
+      - uses: actions/checkout@v4
+        with:
+          repository: matiscodjia/frugal_ml
+          path: projects/frugal_ml
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: projects/sentinel
+      - name: System libraries for plotters (fontconfig)
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev
+      - name: Test
+        working-directory: projects/sentinel
+        run: cargo test --workspace --exclude sentinel-embedd
+      - name: Benches compile
+        working-directory: projects/sentinel
+        run: cargo bench -p sentinel-core --no-run
+      - name: Simulator runs
+        working-directory: projects/sentinel
+        run: cargo run --release -p sentinel-sim > /dev/null
+
+  firmware:
+    name: Firmware build (STM32F411, thumbv7em)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: projects/sentinel
+      - uses: actions/checkout@v4
+        with:
+          repository: matiscodjia/frugal_ml
+          path: projects/frugal_ml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: projects/sentinel
+      - name: Build
+        working-directory: projects/sentinel/sentinel-embedd
+        run: cargo build --release
